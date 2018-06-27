@@ -10,7 +10,7 @@ LAYER_TIMING=1
 HIPCC_FLAGS=-g -O3 -Wall -DLAYER_TIMING=$(LAYER_TIMING) $(CXXFLAGS) $(TARGET) $(INCLUDE_DIRS)
 
 
-all: alexnet resnet benchmark_wino layerwise gputop
+all: alexnet resnet VGG16 VGG19 DenseNet SqueezeNet GoogleNet benchmark_wino layerwise gputop
 
 HEADERS=function.hpp layers.hpp miopen.hpp multi_layers.hpp tensor.hpp utils.hpp
 
@@ -19,7 +19,13 @@ benchmark: all
 	&& ./benchmark_wino L2 10000 | tee L2.log \
 	&& ./layerwise | tee layerwise.log \
 	&& ./alexnet | tee alexnet.log \
-	&& ./resnet | tee resnet50.log
+	&& ./resnet | tee resnet50.log \
+        && ./VGG16 | tee vgg_16.log \
+        && ./VGG19 | tee vgg_19.log \
+        && ./DenseNet | tee dense_net.log \
+        && ./SqueezeNet | tee squeeze_net.log \
+        && ./GoogleNet | tee google_net.log
+   
 
 alexnet: alexnet.cpp $(HEADERS)
 	$(HIPCC) $(HIPCC_FLAGS) alexnet.cpp $(LD_FLAGS) -o $@
@@ -32,6 +38,21 @@ gputop: gputop.cpp miopen.hpp
 
 resnet: resnet.cpp $(HEADERS)
 	$(HIPCC) $(HIPCC_FLAGS) resnet.cpp $(LD_FLAGS) -o $@
+
+VGG16: VGG16.cpp $(HEADERS)
+	$(HIPCC) $(HIPCC_FLAGS) VGG16.cpp $(LD_FLAGS) -o $@
+
+VGG19: VGG19.cpp $(HEADERS)
+	$(HIPCC) $(HIPCC_FLAGS) VGG19.cpp $(LD_FLAGS) -o $@
+
+DenseNet: DenseNet.cpp $(HEADERS)
+	$(HIPCC) $(HIPCC_FLAGS) DenseNet.cpp $(LD_FLAGS) -o $@
+
+SqueezeNet: SqueezeNet.cpp $(HEADERS)
+	$(HIPCC) $(HIPCC_FLAGS) SqueezeNet.cpp $(LD_FLAGS) -o $@
+
+GoogleNet: GoogleNet.cpp $(HEADERS)
+	$(HIPCC) $(HIPCC_FLAGS) GoogleNet.cpp $(LD_FLAGS) -o $@
 
 benchmark_wino: benchmark_wino.cpp $(HEADERS)
 	$(HIPCC) $(HIPCC_FLAGS) benchmark_wino.cpp $(LD_FLAGS) -o $@
