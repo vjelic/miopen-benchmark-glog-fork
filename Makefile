@@ -1,8 +1,9 @@
 ROCM_PATH?= $(wildcard /opt/rocm)
 HIP_PATH?= $(wildcard /opt/rocm/hip)
+MIOPEN_PATH=/home/jehandad/MLOpen/build
 HIPCC=$(HIP_PATH)/bin/hipcc
-INCLUDE_DIRS=-I$(HIP_PATH)/include -I$(ROCM_PATH)/include -I$(ROCM_PATH)/hipblas/include
-LD_FLAGS=-L$(ROCM_PATH)/lib -L$(ROCM_PATH)/opencl/lib/x86_64 -lMIOpen -lOpenCL -lmiopengemm -lhipblas -lrocblas
+INCLUDE_DIRS=-I$(ROCM_PATH)/opencl/include -I$(HIP_PATH)/include -I$(ROCM_PATH)/include -I$(ROCM_PATH)/hipblas/include -I$(MIOPEN_PATH)/../include -I$(MIOPEN_PATH)/include 
+LD_FLAGS=-L$(MIOPEN_PATH)/lib -L$(ROCM_PATH)/lib -L$(ROCM_PATH)/opencl/lib/x86_64 -lMIOpen -lOpenCL -lmiopengemm -lhipblas -lrocblas
 TARGET=--amdgpu-target=gfx900
 LAYER_TIMING=1
 

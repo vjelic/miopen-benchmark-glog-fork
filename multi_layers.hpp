@@ -16,7 +16,16 @@ struct Sequential : public Function {
     std::vector<std::shared_ptr<Function>> layers;
     std::vector<std::shared_ptr<Tensor>> out_tensors; // the inner buffers
 
-    Sequential(const TensorDesc& input_dim, const std::string& name) : name(name), input_desc(input_dim) {}
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopenOperatorArgs_t fusionArgs;
+
+
+    Sequential(const TensorDesc& input_dim, const std::string& name) : name(name), input_desc(input_dim) 
+    {
+       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
+       miopenCreateOperatorArgs(&fusionArgs);
+    }
+
     Sequential(const TensorDesc& input_dim) : Sequential(input_dim, "Sequential") {}
     Sequential(const Sequential&) = default;
     Sequential(Sequential&&) = default;
@@ -164,8 +173,10 @@ struct Model : public Sequential {
     Tensor output;
     bool is_init_fwd;
     bool is_init_bwd;
+    
 
-    Model(const TensorDesc& input_dim, const std::string& name) : Sequential(input_dim, name), input(input_dim), is_init_fwd(false), is_init_bwd(false) {}
+    Model(const TensorDesc& input_dim, const std::string& name) : Sequential(input_dim, name), input(input_dim), is_init_fwd(false), is_init_bwd(false) 
+    {}
     Model(const TensorDesc& input_dim) : Model(input_dim, "Model") {}
     Model(const Model&) = default;
     Model(Model&&) = default;

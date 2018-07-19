@@ -15,6 +15,8 @@ struct Function {
     /// returns the output dimensions
     virtual const TensorDesc& getOutputDesc() const = 0;
 
+    virtual ~Function(){};
+
     // Prints the input and output dimensions to the given stream
     std::ostream& write_dims(std::ostream& os) const {
         return os << getInputDesc() << "->" << getOutputDesc();
@@ -41,6 +43,8 @@ struct Layer : public Function {
 
     Layer(const TensorDesc& input_desc, const TensorDesc& output_desc)
         : input_desc(input_desc), output_desc(output_desc) {}
+
+    virtual ~Layer(){};
 
     virtual const TensorDesc& getInputDesc() const override {
         return input_desc;

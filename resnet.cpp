@@ -131,5 +131,5 @@ int main(int argc, char *argv[])
     std::string mname = "resnet50";
     Model m = resnet(mname);
     BenchmarkLogger::new_session(mname);
-    BenchmarkLogger::benchmark(m, 20);
+    BenchmarkLogger::benchmark(m, 20, false);
 }
