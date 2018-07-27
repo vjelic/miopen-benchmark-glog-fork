@@ -16,14 +16,11 @@ struct Sequential : public Function {
     std::vector<std::shared_ptr<Function>> layers;
     std::vector<std::shared_ptr<Tensor>> out_tensors; // the inner buffers
 
-    miopenFusionPlanDescriptor_t fusePlanDesc;
-    miopenOperatorArgs_t fusionArgs;
 
 
     Sequential(const TensorDesc& input_dim, const std::string& name) : name(name), input_desc(input_dim) 
     {
-       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
-       miopenCreateOperatorArgs(&fusionArgs);
+
     }
 
     Sequential(const TensorDesc& input_dim) : Sequential(input_dim, "Sequential") {}
