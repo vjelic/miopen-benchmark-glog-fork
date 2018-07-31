@@ -42,20 +42,20 @@ Sequential makeBlock(const TensorDesc& input_dim, int planes, int stride=1) {
 Sequential makeBottleneck(const TensorDesc& input_dim, int planes, int stride=1) {
     Sequential left(input_dim, "Shortcut_F");
     left.emplace<ConvLayer>(planes, 1);
-    left.emplace<BatchNorm>();
+    left.emplace<BatchNormInference>();
     left.emplace<ReLU>();
     // reduce size by `stride` (either 1 or 2)
     left.emplace<ConvLayer>(planes, 3, 1, stride);
-    left.emplace<BatchNorm>();
+    left.emplace<BatchNormInference>();
     left.emplace<ReLU>();
     // 4x expansion of channels
     left.emplace<ConvLayer>(4*planes, 1);
-    left.emplace<BatchNorm>();
+    left.emplace<BatchNormInference>();
 
     // downsample residual
     Sequential downsample_block(input_dim, "downsample");
     downsample_block.emplace<ConvLayer>(4*planes, 1, 0, stride);
-    downsample_block.emplace<BatchNorm>();
+    downsample_block.emplace<BatchNormInference>();
 
     Sequential block(input_dim);
     ShortCutAdd s(input_dim);
@@ -104,9 +104,9 @@ Model make_resnet(const TensorDesc& input_dim, B blockfunc, const std::vector<in
     return m;
 }
 
-Model resnet(const std::string& name) {
+Model resnet(const std::string& name, int batch_size = 16) {
     // batch_size = 16 per gpu
-    TensorDesc input_dim(16, 3, 224, 224);
+    TensorDesc input_dim(batch_size, 3, 224, 224);
 
     if (name == "resnet18") {
         return make_resnet(input_dim, &makeBlock, {2, 2, 2, 2});
@@ -127,9 +127,25 @@ int main(int argc, char *argv[])
 {
     device_init();
     CHECK_MIO(miopenEnableProfiling(mio::handle(), true));
-
     std::string mname = "resnet50";
-    Model m = resnet(mname);
+    int batch_size = 16;
+
+    if(argc == 2)
+    {
+        mname = argv[1];
+    }
+    else if (argc == 3)
+    {
+        mname = argv[1];
+        batch_size = std::stoi((std::string)(argv[2]));
+    }
+    else
+    {
+        std::cout << " Received " << argc << " arguments while only 2 or three are expected";
+        exit(-1);
+    }
+
+    Model m = resnet(mname, batch_size);
     BenchmarkLogger::new_session(mname);
     BenchmarkLogger::benchmark(m, 20, false);
 }

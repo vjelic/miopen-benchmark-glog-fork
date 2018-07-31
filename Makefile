@@ -4,7 +4,7 @@ GEMM_PATH=/home/jehandad/MIOpenGEMM/build/install.dir
 
 # MIOPEN_PATH=/tmp/MLOpen/install.dir
 # MIOPEN_PATH=/home/jehandad/MLOpen_dev/MLOpen/build
-MIOPEN_PATH=/home/jehandad/MLOpen/install.dir/
+MIOPEN_PATH=/home/jehandad/MLOpen/install.dir
 HIPCC=$(HIP_PATH)/bin/hipcc
 INCLUDE_DIRS=-I$(MIOPEN_PATH)/include -I$(GEMM_PATH)/include -I$(ROCM_PATH)/opencl/include -I$(HIP_PATH)/include -I$(ROCM_PATH)/include -I$(ROCM_PATH)/hipblas/include
 LD_FLAGS=-L$(GEMM_PATH)/lib -L$(MIOPEN_PATH)/lib -L$(ROCM_PATH)/lib -L$(ROCM_PATH)/opencl/lib/x86_64 -lMIOpen -lOpenCL -lmiopengemm -lhipblas -lrocblas
@@ -12,12 +12,12 @@ TARGET=--amdgpu-target=gfx900
 LAYER_TIMING=1
 
 #HIPCC_FLAGS=-g -Wall $(CXXFLAGS) $(TARGET) $(INCLUDE_DIRS)
-HIPCC_FLAGS=-g -O0 -Wall -DLAYER_TIMING=$(LAYER_TIMING) $(CXXFLAGS) $(TARGET) $(INCLUDE_DIRS)
+HIPCC_FLAGS=-g -O3 -Wall -DLAYER_TIMING=$(LAYER_TIMING) $(CXXFLAGS) $(TARGET) $(INCLUDE_DIRS)
 
 
 all: alexnet resnet VGG16 VGG19 DenseNet SqueezeNet benchmark_wino layerwise gputop
 
-HEADERS=function.hpp layers.hpp miopen.hpp multi_layers.hpp tensor.hpp utils.hpp fused_layers.hpp
+HEADERS=function.hpp layers.hpp miopen.hpp multi_layers.hpp tensor.hpp utils.hpp
 
 benchmark: all
 	./benchmark_wino W1 1000 | tee W1.log \
@@ -39,7 +39,7 @@ main: main.cpp $(HEADERS)
 gputop: gputop.cpp miopen.hpp
 	$(HIPCC) $(HIPCC_FLAGS) gputop.cpp $(LD_FLAGS) -o $@
 
-fused_resnet: resnet.cpp $(HEADERS)
+fused_resnet: fused_resnet.cpp $(HEADERS)
 	$(HIPCC) $(HIPCC_FLAGS) fused_resnet.cpp $(LD_FLAGS) -o $@
 
 

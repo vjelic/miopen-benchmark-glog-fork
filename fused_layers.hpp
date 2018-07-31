@@ -16,9 +16,10 @@
  * @param e [description]
  * @return [description]
  */
+
+#if 0
 struct FusedCNRLayer: public ConvDesc, public ConvLayerDesc, public Layer {
     Tensor weights;
-    std::shared_ptr<Tensor> input_ptr;
     // Hold a ref to the fusion plan and associated data
     // miopenActivationDescriptor_t desc;
 
@@ -69,16 +70,6 @@ struct FusedCNRLayer: public ConvDesc, public ConvLayerDesc, public Layer {
        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
        miopenCreateOperatorArgs(&fusionArgs);
     }
-#if 0 
-    miopenStatus_t
-miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
-                                     const miopenTensorDescriptor_t inputTensorDesc,
-                                     const miopenTensorDescriptor_t filterDesc,
-                                     int* n,
-                                     int* c,
-                                     int* h,
-                                     int* w);
-#endif
 
     void init_forward(const Tensor& input, Tensor& output) override
     {
@@ -214,11 +205,191 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
       assert(false);
     }
 };
+#endif
+
+struct FusedCBR: public ConvDesc, public ConvLayerDesc, public Layer {
+    Tensor weights;
+    miopenFusionOpDescriptor_t biasOp;
+    miopenFusionOpDescriptor_t convoOp;
+    miopenFusionOpDescriptor_t activOp;
+
+    Tensor bias;
+
+    std::shared_ptr<Tensor> conv_output = nullptr;
+    miopenConvFwdAlgorithm_t fwd_algo;
+
+    int mode = 0; // 0: CNR fused, 1: Conv separate, NR fused
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopenOperatorArgs_t fusionArgs;
+    bool is_fused_faster = false;
+
+    virtual std::ostream& write_name(std::ostream& os) const 
+    {
+        //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
+        return os << "FusedCBR(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",m=" << mode << ")";
+    }
+
+    FusedCBR(const TensorDesc& input_dims, int channels_out, int kernel_size, int padding=0, int stride=1):
+                  ConvDesc(padding, padding, stride, stride, 1, 1),
+                  ConvLayerDesc({input_dims.n, input_dims.h, input_dims.w, input_dims.c, channels_out, kernel_size, padding, stride}),
+                  Layer((Dim&)input_dims, getConvOutputDim(padding, stride, input_dims, TensorDesc(channels_out, input_dims.c, kernel_size, kernel_size))),
+                  weights(channels_out, input_dims.c, kernel_size, kernel_size), bias(1, channels_out,1 ,1)
+    {
+      // create the fusion plan and 
+       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
+       miopenCreateOperatorArgs(&fusionArgs);
+    }
+
+    void init_forward(const Tensor& input, Tensor& output) override
+    {
+        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+        // hardcode the algorithm to the supported one
+        CHECK_MIO(miopenCreateOpConvForwardAlgo(fusePlanDesc,
+                                  &convoOp,
+                                  this->desc,
+                                  miopenConvolutionFwdAlgoDirect,
+                                  weights.desc));
+
+
+        CHECK_MIO(miopenCreateOpBiasForward(fusePlanDesc, &biasOp, bias.desc));
+        // we are only concerned with RELU
+        CHECK_MIO(miopenCreateOpActivationForward(fusePlanDesc, &activOp, miopenActivationRELU))
+
+        // compile fusion plan
+        auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
+        if(status == miopenStatusSuccess)
+        {
+            mode = 0;
+            //Set the Args
+            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, weights.data);
+
+            float activ_alpha = static_cast<float>(0), activ_beta = static_cast<float>(0), activ_gamma = static_cast<float>(0);
+
+            miopenSetOpArgsActivForward(
+                    fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, bias.data);
+        }
+        else
+        {
+          mode = 1;
+          assert(false);
+        }
+    }
+
+    void forward(const Tensor& input, Tensor& output) override
+    {
+
+      if(mode == 0)
+      {
+        // Execute the fusion plan 
+        CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
+                                fusePlanDesc,
+                                input.desc,
+                                input.data,
+                                output.desc,
+                                output.data,
+                                fusionArgs));
+      }
+      else
+      {
+        assert(false);
+      }
+    }
+
+    void backward(const Tensor& doutput, Tensor& dinput)
+    {
+      assert(false);
+    }
+};
+
+struct FusedCB: public ConvDesc, public ConvLayerDesc, public Layer {
+    Tensor weights;
+
+    miopenFusionOpDescriptor_t biasOp;
+    miopenFusionOpDescriptor_t convoOp;
+
+    Tensor bias;
+
+    std::shared_ptr<Tensor> conv_output = nullptr;
+    miopenConvFwdAlgorithm_t fwd_algo;
+
+    int mode = 0; // 0: CNR fused, 1: Conv separate, NR fused
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopenOperatorArgs_t fusionArgs;
+
+    virtual std::ostream& write_name(std::ostream& os) const 
+    {
+        //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
+        return os << "FusedCB(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",m=" << mode << ")";
+    }
+
+    FusedCB(const TensorDesc& input_dims, int channels_out, int kernel_size, int padding=0, int stride=1):
+                  ConvDesc(padding, padding, stride, stride, 1, 1),
+                  ConvLayerDesc({input_dims.n, input_dims.h, input_dims.w, input_dims.c, channels_out, kernel_size, padding, stride}),
+                  Layer((Dim&)input_dims, getConvOutputDim(padding, stride, input_dims, TensorDesc(channels_out, input_dims.c, kernel_size, kernel_size))),
+                  weights(channels_out, input_dims.c, kernel_size, kernel_size), bias(1, channels_out, 1, 1)
+    {
+      // create the fusion plan and 
+       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
+       miopenCreateOperatorArgs(&fusionArgs);
+    }
+
+    void init_forward(const Tensor& input, Tensor& output) override
+    {
+        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+        // hardcode the algorithm to the supported one
+        CHECK_MIO(miopenCreateOpConvForwardAlgo(fusePlanDesc,
+                                  &convoOp,
+                                  this->desc,
+                                  miopenConvolutionFwdAlgoDirect,
+                                  weights.desc));
+
+        CHECK_MIO(miopenCreateOpBiasForward(fusePlanDesc, &biasOp, bias.desc));
+        // compile fusion plan
+        auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
+        if(status == miopenStatusSuccess)
+        {
+            mode = 0;
+            //Set the Args
+            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, weights.data);
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, bias.data);
+        }
+        else
+        {
+          mode = 1;
+          assert(false);
+        }
+    }
+
+    void forward(const Tensor& input, Tensor& output) override
+    {
+
+      if(mode == 0)
+      {
+        // Execute the fusion plan 
+        CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
+                                fusePlanDesc,
+                                input.desc,
+                                input.data,
+                                output.desc,
+                                output.data,
+                                fusionArgs));
+      }
+      else
+      {
+        assert(false);
+      }
+    }
+
+    void backward(const Tensor& doutput, Tensor& dinput)
+    {
+      assert(false);
+    }
+};
 
 struct FusedConvBatchNorm: public ConvDesc, public ConvLayerDesc, public Layer {
     miopenConvFwdAlgorithm_t fwd_algo;
     Tensor weights;
-    std::shared_ptr<Tensor> input_ptr;
     
     // miopenActivationDescriptor_t desc;
 
@@ -368,6 +539,106 @@ struct FusedConvBatchNorm: public ConvDesc, public ConvLayerDesc, public Layer {
                  running_mean.data,
                  running_var.data,
                  epsilon));
+      }
+    }
+
+    void backward(const Tensor& doutput, Tensor& dinput)
+    {
+      assert(false);
+    }
+};
+
+struct FusedBNR: public Layer {
+
+    miopenFusionOpDescriptor_t bNormOp;
+    miopenFusionOpDescriptor_t activOp;
+
+    miopenBatchNormMode_t bn_mode = miopenBNSpatial;
+    TensorDesc bn_dim;
+    Tensor scale;
+    Tensor bias;
+    double exp;
+    Tensor running_mean;
+    Tensor running_var;
+    double epsilon;
+
+    int mode = 0; // 0: NR fused, 1:Not fused
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopenOperatorArgs_t fusionArgs;
+
+    virtual std::ostream& write_name(std::ostream& os) const 
+    {
+        //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
+        return os << "FusedBNR()";
+    }
+
+    static TensorDesc get_bn_dim(const TensorDesc& input_dim, miopenBatchNormMode_t bn_mode) {
+        TensorDesc bn(0,0,0,0);
+        CHECK_MIO(miopenDeriveBNTensorDescriptor(bn.desc, input_dim.desc, bn_mode));
+        bn.update_get();
+        return bn;
+    }
+
+    FusedBNR(const TensorDesc& input_dims, miopenBatchNormMode_t bn_mode_=miopenBNSpatial, double eps = 1e-05):
+                  Layer(input_dims, input_dims),
+                  bn_mode(bn_mode_),bn_dim(get_bn_dim(input_dims, bn_mode)), scale(bn_dim), bias(bn_dim), 
+                  running_mean(bn_dim), running_var(bn_dim), epsilon(eps)
+    {
+      // create the fusion plan and 
+       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
+       miopenCreateOperatorArgs(&fusionArgs);
+    }
+
+    void init_forward(const Tensor& input, Tensor& output) override
+    {
+        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+        CHECK_MIO(miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, bias.desc));
+
+        // we are only concerned with RELU
+        CHECK_MIO(miopenCreateOpActivationForward(fusePlanDesc, &activOp, miopenActivationRELU))
+
+        // compile fusion plan
+        auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
+        if(status == miopenStatusSuccess)
+        {
+            mode = 0;
+            float activ_alpha = static_cast<float>(0), activ_beta = static_cast<float>(0), activ_gamma = static_cast<float>(0);
+            miopenSetOpArgsActivForward(
+                    fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+
+            miopenSetOpArgsBatchNormInference(fusionArgs,
+                                      bNormOp,
+                                      &alpha,
+                                      &beta,
+                                      scale.data,
+                                      bias.data,
+                                      running_mean.data,
+                                      running_var.data,
+                                      epsilon);
+        }
+        else
+        {
+          mode = 1;
+          assert(false);
+        }
+    }
+
+    void forward(const Tensor& input, Tensor& output) override
+    {
+      if(mode == 1)
+      {
+        assert(false);
+      }
+      else
+      {
+        // Execute the fusion plan 
+        CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
+                                fusePlanDesc,
+                                input.desc,
+                                input.data,
+                                output.desc,
+                                output.data,
+                                fusionArgs));
       }
     }
 

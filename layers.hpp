@@ -449,6 +449,39 @@ struct BatchNorm : public Layer {
     }
 };
 
+struct BatchNormInference : public BatchNorm
+{
+    
+    BatchNormInference(const TensorDesc& input_dim, miopenBatchNormMode_t bn_mode=miopenBNSpatial, double eps = 1e-05, double momentum = 0.1) :
+        BatchNorm(input_dim,bn_mode, eps, momentum)
+        {
+        }
+    void forward(const Tensor& input, Tensor& output)
+    {
+        float alpha = 1.f;
+        float beta = 0.f;
+        CHECK_MIO(miopenBatchNormalizationForwardInference(mio::handle(),
+                 bn_mode,
+                 &alpha,
+                 &beta,
+                 input.desc,
+                 input.data,
+                 output.desc,
+                 output.data,
+                 bn_dim.desc,
+                 scale.data,
+                 bias.data,
+                 running_mean.data,
+                 running_var.data,
+                 epsilon));
+
+    }
+    void backward(const Tensor& doutput, Tensor& dinput)
+    {
+        assert(false);
+    }
+};
+
 struct Reshape : public Layer {
 
     Reshape(const TensorDesc& input_dim, int n, int c, int h, int w)

@@ -142,7 +142,7 @@ struct BenchmarkLogger : public Timer {
         float dur = this->toc();
         std::stringstream ss;
         ss << f;
-        log_step(ss.str(), bwd, dur);
+        instance().log_step(ss.str(), bwd, dur);
 #endif
     }
 
@@ -188,6 +188,7 @@ struct BenchmarkLogger : public Timer {
         for (int i = 0; i < 1; ++i) {
             {
                 INFO("               ======= BEGIN FWD =======");
+                instance().of << "               ======= BEGIN FWD (Warmup) =======" << std::endl;
                 timer.tic();
                 m.forward();
                 CHECK_HIP(hipDeviceSynchronize());
@@ -210,6 +211,7 @@ struct BenchmarkLogger : public Timer {
         for (int i = 0; i < reps; ++i) {
             {
                 INFO("               ======= BEGIN FWD =======");
+                instance().of << "               ======= BEGIN FWD =======" << std::endl;
                 fwdtime.tic();
                 m.forward();
                 CHECK_HIP(hipDeviceSynchronize());
