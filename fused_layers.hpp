@@ -215,18 +215,21 @@ struct FusedCBR: public ConvDesc, public ConvLayerDesc, public Layer {
 
     Tensor bias;
 
-    std::shared_ptr<Tensor> conv_output = nullptr;
     miopenConvFwdAlgorithm_t fwd_algo;
+
+    // unfused equivalent
+    std::shared_ptr<Sequential> model = nullptr;
+
 
     int mode = 0; // 0: CNR fused, 1: Conv separate, NR fused
     miopenFusionPlanDescriptor_t fusePlanDesc;
     miopenOperatorArgs_t fusionArgs;
-    bool is_fused_faster = false;
+    bool is_fused_faster = true;
 
     virtual std::ostream& write_name(std::ostream& os) const 
     {
         //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
-        return os << "FusedCBR(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",m=" << mode << ")";
+        return os << "FusedCBR(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",is_fused_faster=" << is_fused_faster << ")";
     }
 
     FusedCBR(const TensorDesc& input_dims, int channels_out, int kernel_size, int padding=0, int stride=1):
@@ -238,6 +241,11 @@ struct FusedCBR: public ConvDesc, public ConvLayerDesc, public Layer {
       // create the fusion plan and 
        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
        miopenCreateOperatorArgs(&fusionArgs);
+
+       model = std::make_shared<Sequential>(input_dims, "FusedCBR_discrete");
+       model->emplace<ConvLayer>(channels_out, kernel_size, padding, stride );
+       model->emplace<BatchNormInference>();
+       model->emplace<ReLU>();
     }
 
     void init_forward(const Tensor& input, Tensor& output) override
@@ -274,12 +282,49 @@ struct FusedCBR: public ConvDesc, public ConvLayerDesc, public Layer {
           mode = 1;
           assert(false);
         }
+        auto iters = 20;
+        is_fused_faster = true;
+        //Initialize the discrete model
+        model->init_forward(input, output);
+        //dummy run to warm up the cache
+        model->forward(input, output);
+        this->forward(input, output);
+
+        // Run the benchmark on each and time 
+        auto disc_start = std::chrono::steady_clock::now();
+        for(auto idx = 0 ; idx < iters; idx++)
+        {
+          model->forward(input, output);
+        }
+        auto disc_end = std::chrono::steady_clock::now();
+        auto disc_time = ((disc_end - disc_start) / iters);
+
+        auto fused_start = std::chrono::steady_clock::now();
+        for(auto idx = 0; idx < iters; idx++)
+        {
+          this->forward(input, output);
+        }
+        auto fused_end = std::chrono::steady_clock::now();
+        auto fused_time = ((fused_end - fused_start) / iters);
+
+        // Free up the memory from the slower model
+        if(fused_time < disc_time)
+        {
+          is_fused_faster = true;
+          model.reset();
+        }
+        else
+        {
+          is_fused_faster = false;
+          weights.dealloc();
+          bias.dealloc();
+        }
     }
 
     void forward(const Tensor& input, Tensor& output) override
     {
 
-      if(mode == 0)
+      if(is_fused_faster)
       {
         // Execute the fusion plan 
         CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
@@ -292,7 +337,7 @@ struct FusedCBR: public ConvDesc, public ConvLayerDesc, public Layer {
       }
       else
       {
-        assert(false);
+        model->forward(input, output);
       }
     }
 
@@ -310,17 +355,20 @@ struct FusedCB: public ConvDesc, public ConvLayerDesc, public Layer {
 
     Tensor bias;
 
-    std::shared_ptr<Tensor> conv_output = nullptr;
     miopenConvFwdAlgorithm_t fwd_algo;
 
     int mode = 0; // 0: CNR fused, 1: Conv separate, NR fused
     miopenFusionPlanDescriptor_t fusePlanDesc;
     miopenOperatorArgs_t fusionArgs;
 
+    std::shared_ptr<Sequential> model = nullptr;
+    bool is_fused_faster = true;
+
+
     virtual std::ostream& write_name(std::ostream& os) const 
     {
         //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
-        return os << "FusedCB(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",m=" << mode << ")";
+        return os << "FusedCB(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",is_fused_faster=" << is_fused_faster << ")";
     }
 
     FusedCB(const TensorDesc& input_dims, int channels_out, int kernel_size, int padding=0, int stride=1):
@@ -332,6 +380,10 @@ struct FusedCB: public ConvDesc, public ConvLayerDesc, public Layer {
       // create the fusion plan and 
        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
        miopenCreateOperatorArgs(&fusionArgs);
+
+       model = std::make_shared<Sequential>(input_dims, "FusedCB_discrete");
+       model->emplace<ConvLayer>(channels_out, kernel_size, padding, stride );
+       model->emplace<BatchNormInference>();
     }
 
     void init_forward(const Tensor& input, Tensor& output) override
@@ -359,12 +411,50 @@ struct FusedCB: public ConvDesc, public ConvLayerDesc, public Layer {
           mode = 1;
           assert(false);
         }
+
+        auto iters = 20;
+        is_fused_faster = true;
+        //Initialize the discrete model
+        model->init_forward(input, output);
+        //dummy run to warm up the cache
+        model->forward(input, output);
+        this->forward(input, output);
+
+        // Run the benchmark on each and time 
+        auto disc_start = std::chrono::steady_clock::now();
+        for(auto idx = 0 ; idx < iters; idx++)
+        {
+          model->forward(input, output);
+        }
+        auto disc_end = std::chrono::steady_clock::now();
+        auto disc_time = ((disc_end - disc_start) / iters);
+
+        auto fused_start = std::chrono::steady_clock::now();
+        for(auto idx = 0; idx < iters; idx++)
+        {
+          this->forward(input, output);
+        }
+        auto fused_end = std::chrono::steady_clock::now();
+        auto fused_time = ((fused_end - fused_start) / iters);
+
+        // Free up the memory from the slower model
+        if(fused_time < disc_time)
+        {
+          is_fused_faster = true;
+          model.reset();
+        }
+        else
+        {
+          is_fused_faster = false;
+          weights.dealloc();
+          bias.dealloc();
+        }
     }
 
     void forward(const Tensor& input, Tensor& output) override
     {
 
-      if(mode == 0)
+      if(is_fused_faster)
       {
         // Execute the fusion plan 
         CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
@@ -377,168 +467,7 @@ struct FusedCB: public ConvDesc, public ConvLayerDesc, public Layer {
       }
       else
       {
-        assert(false);
-      }
-    }
-
-    void backward(const Tensor& doutput, Tensor& dinput)
-    {
-      assert(false);
-    }
-};
-
-struct FusedConvBatchNorm: public ConvDesc, public ConvLayerDesc, public Layer {
-    miopenConvFwdAlgorithm_t fwd_algo;
-    Tensor weights;
-    
-    // miopenActivationDescriptor_t desc;
-
-
-    miopenFusionOpDescriptor_t bNormOp;
-    miopenFusionOpDescriptor_t convoOp;
-
-    miopenBatchNormMode_t bn_mode = miopenBNSpatial;
-    TensorDesc bn_dim;
-    Tensor scale;
-    Tensor bias;
-    double exp;
-    Tensor running_mean;
-    Tensor running_var;
-    double epsilon;
-    // Hold a ref to the fusion plan and associated data
-    miopenFusionPlanDescriptor_t fusePlanDesc;
-    miopenOperatorArgs_t fusionArgs;
-    int mode = 0;
-    std::shared_ptr<Tensor> conv_output = nullptr;
-
-    virtual std::ostream& write_name(std::ostream& os) const 
-    {
-        //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
-        return os << "FusedConvBatchNorm(" << kernel_size << "x" << kernel_size << ",pad=" << padding << ",s=" << stride << ",m=" << mode << ")";
-    }
-
-    static TensorDesc get_bn_dim(const TensorDesc& input_dim, miopenBatchNormMode_t bn_mode) {
-        TensorDesc bn(0,0,0,0);
-        CHECK_MIO(miopenDeriveBNTensorDescriptor(bn.desc, input_dim.desc, bn_mode));
-        bn.update_get();
-        return bn;
-    }
-
-    FusedConvBatchNorm(const TensorDesc& input_dims, int channels_out, int kernel_size, int padding=0, int stride=1,
-                  miopenBatchNormMode_t bn_mode_=miopenBNSpatial, double eps = 1e-05):
-                  ConvDesc(padding, padding, stride, stride, 1, 1),
-                  ConvLayerDesc({input_dims.n, input_dims.h, input_dims.w, input_dims.c, channels_out, kernel_size, padding, stride}),
-                  Layer((Dim&)input_dims, getConvOutputDim(padding, stride, input_dims, TensorDesc(channels_out, input_dims.c, kernel_size, kernel_size))),
-                  weights(channels_out, input_dims.c, kernel_size, kernel_size),
-                  bn_mode(bn_mode_),bn_dim(get_bn_dim(input_dims, bn_mode)), scale(bn_dim), bias(bn_dim), 
-                  running_mean(bn_dim), running_var(bn_dim), epsilon(eps)
-
-    {
-      // create the fusion plan and 
-       miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
-       miopenCreateOperatorArgs(&fusionArgs);
-    }
-
-    void init_forward(const Tensor& input, Tensor& output) override
-    {
-        // hardcode the algorithm to the supported one
-        CHECK_MIO(miopenCreateOpConvForwardAlgo(fusePlanDesc,
-                                  &convoOp,
-                                  this->desc,
-                                  miopenConvolutionFwdAlgoDirect,
-                                  weights.desc));
-
-        CHECK_MIO(miopenDeriveBNTensorDescriptor(bias.desc, input.desc, bn_mode));
-        bias.update_get();
-        CHECK_MIO(miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, bias.desc));
-        // compile fusion plan
-        auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
-        if(status == miopenStatusSuccess)
-        {
-          mode = 0;
-          //Set the Args
-          float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-          miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, weights.data);
-
-          miopenSetOpArgsBatchNormInference(fusionArgs,
-                                    bNormOp,
-                                    &alpha,
-                                    &beta,
-                                    scale.data,
-                                    bias.data,
-                                    running_mean.data,
-                                    running_var.data,
-                                    epsilon);
-        }
-        else
-        {
-          mode = 1;
-          // setup the discrete conv op
-          size_t fwd_workspace_size;
-          CHECK_MIO(miopenConvolutionForwardGetWorkSpaceSize(mio::handle(), weights.desc, input.desc, this->desc, output.desc, &fwd_workspace_size));
-          DEBUG("Init fwd " << *this << " req workspace: " << fwd_workspace_size);
-
-          DevBuffer& buffer = WorkSpace::get(fwd_workspace_size);
-
-          int n, c, h, w;
-          CHECK_MIO(miopenGetConvolutionForwardOutputDim(this->desc, input.desc, weights.desc, 
-                    &n, &c, &h, &w));
-
-          conv_output = std::make_shared<Tensor>(n, c, h, w);
-
-          // find best algo, and benchmark!
-          miopenConvAlgoPerf_t perfs[4];
-          int returned_algos;
-          CHECK_MIO(miopenFindConvolutionForwardAlgorithm(mio::handle(), input.desc, input.data, 
-            weights.desc, weights.data, this->desc, output.desc, output.data, 4, 
-            &returned_algos, perfs, buffer.data, fwd_workspace_size, false));
-
-          INFO("\tMIOpen Found " << returned_algos << " fwd algorithms, choosing " << perfs[0].fwd_algo << ": ");
-          for (int i = 0; i < returned_algos; ++i) {
-              INFO("\t\t" << i << ") " << perfs[i].fwd_algo << " - time: " << perfs[i].time << ", Memory: " << perfs[i].memory);
-          }
-          fwd_algo = perfs[0].fwd_algo;
-        }
-    }
-
-    void forward(const Tensor& input, Tensor& output) override
-    {
-      if(mode == 0)
-      {
-        // Execute the fusion plan 
-        miopenExecuteFusionPlan(mio::handle(),
-                                fusePlanDesc,
-                                input.desc,
-                                input.data,
-                                output.desc,
-                                output.data,
-                                fusionArgs);
-      }
-      else
-      {
-
-        float alpha = 1.f;
-        float beta = 0.f;
-
-        DevBuffer& buffer = WorkSpace::get();
-        CHECK_MIO(miopenConvolutionForward(mio::handle(), &alpha, input.desc, input.data, 
-          weights.desc, weights.data, this->desc, fwd_algo, &beta, conv_output->desc, 
-          conv_output->data, buffer.data, buffer.size));
-
-        CHECK_MIO(miopenBatchNormalizationForwardInference(mio::handle(),
-                 bn_mode,
-                 &alpha,
-                 &beta,
-                 conv_output->desc,
-                 conv_output->data,
-                 output.desc,
-                 output.data,
-                 bn_dim.desc,
-                 scale.data,
-                 bias.data,
-                 running_mean.data,
-                 running_var.data,
-                 epsilon));
+        model->forward(input, output);
       }
     }
 
@@ -566,10 +495,13 @@ struct FusedBNR: public Layer {
     miopenFusionPlanDescriptor_t fusePlanDesc;
     miopenOperatorArgs_t fusionArgs;
 
+    std::shared_ptr<Sequential> model = nullptr; 
+    bool is_fused_faster = true;
+
     virtual std::ostream& write_name(std::ostream& os) const 
     {
         //return os << "Conv(" << kernel_size << "x" << kernel_size << ")";
-        return os << "FusedBNR()";
+        return os << "FusedBNR(" << "is_fused_faster=" << is_fused_faster << ")";
     }
 
     static TensorDesc get_bn_dim(const TensorDesc& input_dim, miopenBatchNormMode_t bn_mode) {
@@ -587,6 +519,10 @@ struct FusedBNR: public Layer {
       // create the fusion plan and 
        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input_desc.desc);
        miopenCreateOperatorArgs(&fusionArgs);
+
+       model = std::make_shared<Sequential>(input_dims, "FusedCBR_discrete");
+       model->emplace<BatchNormInference>();
+       model->emplace<ReLU>();
     }
 
     void init_forward(const Tensor& input, Tensor& output) override
@@ -621,15 +557,51 @@ struct FusedBNR: public Layer {
           mode = 1;
           assert(false);
         }
+
+        auto iters = 20;
+        is_fused_faster = true;
+        //Initialize the discrete model
+        model->init_forward(input, output);
+        //dummy run to warm up the cache
+        model->forward(input, output);
+        this->forward(input, output);
+
+        // Run the benchmark on each and time 
+        auto disc_start = std::chrono::steady_clock::now();
+        for(auto idx = 0 ; idx < iters; idx++)
+        {
+          model->forward(input, output);
+        }
+        auto disc_end = std::chrono::steady_clock::now();
+        auto disc_time = ((disc_end - disc_start) / iters);
+
+        auto fused_start = std::chrono::steady_clock::now();
+        for(auto idx = 0; idx < iters; idx++)
+        {
+          this->forward(input, output);
+        }
+        auto fused_end = std::chrono::steady_clock::now();
+        auto fused_time = ((fused_end - fused_start) / iters);
+
+        // Free up the memory from the slower model
+        if(fused_time < disc_time)
+        {
+          is_fused_faster = true;
+          model.reset();
+        }
+        else
+        {
+          is_fused_faster = false;
+          scale.dealloc();
+          bias.dealloc();
+          running_mean.dealloc();
+          running_var.dealloc();
+        }
     }
 
     void forward(const Tensor& input, Tensor& output) override
     {
-      if(mode == 1)
-      {
-        assert(false);
-      }
-      else
+      if(is_fused_faster)
       {
         // Execute the fusion plan 
         CHECK_MIO(miopenExecuteFusionPlan(mio::handle(),
@@ -639,6 +611,10 @@ struct FusedBNR: public Layer {
                                 output.desc,
                                 output.data,
                                 fusionArgs));
+      }
+      else
+      {
+        model->forward(input, output);
       }
     }
 

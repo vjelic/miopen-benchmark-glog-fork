@@ -266,10 +266,17 @@ struct Tensor : public TensorDesc {
         return viewAs(d.n, d.c, d.h, d.w);
     }
 
-    ~Tensor() {
+    void dealloc()
+    {
         if (owns_data && data_size > 0) {
             device_free(data);
+            owns_data = false;
+            data_size = 0;
         }
+    }
+
+    ~Tensor() {
+        dealloc();
     }
 };
 

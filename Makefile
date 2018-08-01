@@ -17,7 +17,7 @@ HIPCC_FLAGS=-g -O3 -Wall -DLAYER_TIMING=$(LAYER_TIMING) $(CXXFLAGS) $(TARGET) $(
 
 all: alexnet resnet VGG16 VGG19 DenseNet SqueezeNet benchmark_wino layerwise gputop
 
-HEADERS=function.hpp layers.hpp miopen.hpp multi_layers.hpp tensor.hpp utils.hpp
+HEADERS=function.hpp layers.hpp miopen.hpp multi_layers.hpp tensor.hpp utils.hpp fused_layers.hpp
 
 benchmark: all
 	./benchmark_wino W1 1000 | tee W1.log \
