@@ -88,7 +88,7 @@ Model make_resnet(const TensorDesc& input_dim, B blockfunc, const std::vector<in
 
     Sequential pre(input_dim, "ResNet Pre");
     pre.emplace<ConvLayer>(64, 7, 3, 2);
-    pre.emplace<BatchNorm>();
+    pre.emplace<BatchNormInference>();
     pre.emplace<ReLU>();
     pre.emplace<MaxPool>(3, 0, 2);
     DEBUG("ResNet Pre output dims: " << pre.getOutputDesc());
