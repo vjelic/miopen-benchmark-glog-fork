@@ -12,6 +12,19 @@
           "informationUri": "https://www.glog.ai",
           "rules": [
             {
+              "id": "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2",
+              "help": {
+                "text": "",
+                "markdown": "## Description\n\nIn C++ programming, the vulnerability \"Avoid Using Non-Cryptographic or Weak Random Number Generators\" refers to the use of weak or non-cryptographic random number generators that can lead to predictable or easily guessable random values. This can be exploited by attackers to predict the outcome of the program's operations that rely on these random values, leading to a variety of security issues.\n\nThe specific vulnerability sink in question is `rand()*1.f/RAND_MAX`. The `rand()` function in C++ is a weak random number generator that should not be used for generating values where security is a concern.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, use a strong, cryptographic random number generator instead of `rand()`. In C++, you can use the `<random>` library, which provides a variety of random number generators that are suitable for different purposes.\n\n## Source Code Fix Recommendation\n\nReplace the `rand()` function with a cryptographic random number generator. Here is an example using the `std::random_device` and `std::uniform_real_distribution` from the `<random>` library:\n\n```cpp\n#include <random>\n\nstd::random_device rd;\nstd::mt19937 gen(rd());\nstd::uniform_real_distribution<> dis(0, 1);\n\nfloat random_value = dis(gen);\n```\n\n## Library Dependencies\n\nThe code example requires the `<random>` library.\n\n## References\n\n- [CWE-338: Use of Cryptographically Weak PRNG](https://cwe.mitre.org/data/definitions/338.html)"
+              },
+              "properties": {
+                "tags": [
+                  "DS148264",
+                  "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2"
+                ]
+              }
+            },
+            {
               "id": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
               "help": {
                 "text": "",
@@ -36,19 +49,6 @@
               }
             },
             {
-              "id": "fc94a3d0-b17d-39b1-b23b-9e2adb0bb60f",
-              "help": {
-                "text": "",
-                "markdown": "## Description\n\nIn C++ programming, the vulnerability \"Avoid Using Non-Cryptographic or Weak Random Number Generators\" refers to the use of weak or non-cryptographic random number generators that can lead to predictable or easily guessable values. This can be exploited by attackers to predict the outcome of the program's operations that rely on these random values, leading to a variety of security issues.\n\nThe specific vulnerability sink in question is `rand()*1.f/RAND_MAX`. The `rand()` function in C++ is a weak random number generator that should not be used for generating values where security is a concern.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, use a strong, cryptographic random number generator instead of `rand()`. In C++, you can use the `<random>` library, which provides a variety of random number generators that are suitable for different purposes.\n\n## Source Code Fix Recommendation\n\nReplace the `rand()` function with a cryptographic random number generator. Here is an example using the `std::random_device` and `std::uniform_real_distribution` from the `<random>` library:\n\n```cpp\n#include <random>\n\nstd::random_device rd;\nstd::mt19937 gen(rd());\nstd::uniform_real_distribution<> dis(0, 1);\n\nfloat random_value = dis(gen);\n```\n\n## Library Dependencies\n\nThe above code example requires the `<random>` library.\n\n## References\n\n- [CWE-338: Use of Cryptographically Weak PRNG](https://cwe.mitre.org/data/definitions/338.html)"
-              },
-              "properties": {
-                "tags": [
-                  "DS148264",
-                  "fc94a3d0-b17d-39b1-b23b-9e2adb0bb60f"
-                ]
-              }
-            },
-            {
               "id": "e9d0103b-f923-367c-8761-2914c25a9414",
               "help": {
                 "text": "",
@@ -61,7 +61,7 @@
               }
             },
             {
-              "id": "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2",
+              "id": "fc94a3d0-b17d-39b1-b23b-9e2adb0bb60f",
               "help": {
                 "text": "",
                 "markdown": "## Description\n\nIn C++ programming, the vulnerability \"Avoid Using Non-Cryptographic or Weak Random Number Generators\" refers to the use of weak or non-cryptographic random number generators that can lead to predictable or easily guessable random values. This can be exploited by attackers to predict the outcome of the program's operations that rely on these random values, leading to a variety of security issues.\n\nThe specific vulnerability sink in question is `rand()*1.f/RAND_MAX`. The `rand()` function in C++ is a weak random number generator that should not be used for generating values where security is a concern.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, use a strong, cryptographic random number generator instead of `rand()`. In C++, you can use the `<random>` library, which provides a variety of random number generators that are suitable for different purposes.\n\n## Source Code Fix Recommendation\n\nReplace the `rand()` function with a cryptographic random number generator. Here is an example using the `std::random_device` and `std::uniform_real_distribution` from the `<random>` library:\n\n```cpp\n#include <random>\n\nstd::random_device rd;\nstd::mt19937 gen(rd());\nstd::uniform_real_distribution<> dis(0, 1);\n\nfloat random_value = dis(gen);\n```\n\n## Library Dependencies\n\nThe code example requires the `<random>` library.\n\n## References\n\n- [CWE-338: Use of Cryptographically Weak PRNG](https://cwe.mitre.org/data/definitions/338.html)"
@@ -69,7 +69,7 @@
               "properties": {
                 "tags": [
                   "DS148264",
-                  "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2"
+                  "fc94a3d0-b17d-39b1-b23b-9e2adb0bb60f"
                 ]
               }
             }
