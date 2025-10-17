@@ -24,6 +24,30 @@
               }
             },
             {
+              "id": "d22337f7-0c7f-346e-82eb-4fef004e5752",
+              "help": {
+                "text": "",
+                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
+              },
+              "properties": {
+                "tags": [
+                  "DS154189"
+                ]
+              }
+            },
+            {
+              "id": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
+              "help": {
+                "text": "",
+                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
+              },
+              "properties": {
+                "tags": [
+                  "DS154189"
+                ]
+              }
+            },
+            {
               "id": "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2",
               "help": {
                 "text": "",
@@ -33,18 +57,6 @@
                 "tags": [
                   "DS148264",
                   "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2"
-                ]
-              }
-            },
-            {
-              "id": "d22337f7-0c7f-346e-82eb-4fef004e5752",
-              "help": {
-                "text": "",
-                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
-              },
-              "properties": {
-                "tags": [
-                  "DS154189"
                 ]
               }
             },
@@ -60,18 +72,6 @@
                   "fc94a3d0-b17d-39b1-b23b-9e2adb0bb60f"
                 ]
               }
-            },
-            {
-              "id": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
-              "help": {
-                "text": "",
-                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
-              },
-              "properties": {
-                "tags": [
-                  "DS154189"
-                ]
-              }
             }
           ],
           "language": "en-US",
@@ -84,46 +84,6 @@
       },
       "language": "en-US",
       "results": [
-        {
-          "ruleId": "e9d0103b-f923-367c-8761-2914c25a9414",
-          "kind": "fail",
-          "level": "warning",
-          "message": {
-            "text": "Detected Prohibited C Function"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "benchmark_wino.cpp"
-                },
-                "region": {
-                  "startLine": 36,
-                  "startColumn": 15,
-                  "endLine": 36,
-                  "endColumn": 19,
-                  "charOffset": 984,
-                  "charLength": 4,
-                  "snippet": {
-                    "text": "atoi",
-                    "rendered": {
-                      "text": "atoi",
-                      "markdown": "`atoi`"
-                    }
-                  },
-                  "sourceLanguage": "cpp"
-                }
-              }
-            }
-          ],
-          "properties": {
-            "DevSkimSeverity": "Moderate",
-            "DevSkimConfidence": "High",
-            "tags": [
-              "API.DangerousAPI.BannedFunction"
-            ]
-          }
-        },
         {
           "ruleId": "d22337f7-0c7f-346e-82eb-4fef004e5752",
           "kind": "fail",
