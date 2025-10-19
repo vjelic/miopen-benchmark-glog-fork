@@ -12,31 +12,7 @@
           "informationUri": "https://www.glog.ai",
           "rules": [
             {
-              "id": "e9d0103b-f923-367c-8761-2914c25a9414",
-              "help": {
-                "text": "",
-                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability refers to the use of insecure C library functions that can lead to various security issues such as buffer overflows, format string vulnerabilities, integer overflows, etc. In this case, the `atoi()` function is used, which can lead to integer overflow or underflow if the input is not properly validated or sanitized.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to these functions, such as `strtol()` or `sscanf()`, which provide error checking. Also, always validate and sanitize user input to prevent any malicious data from causing harm.\n\n## Source Code Fix Recommendation\n\nReplace the `atoi()` function with `strtol()` or `sscanf()`. Here is an example of how to do it with `strtol()`:\n\n```cpp\n#include <cstdlib>\n#include <cerrno>\n\nchar *endptr;\nlong int reps = strtol(argv[2], &endptr, 10);\n\nif (errno == ERANGE) {\n    // handle overflow/underflow\n} else if (endptr == argv[2]) {\n    // handle no digits were found\n} else {\n    // use reps\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library dependencies:\n\n- `<cstdlib>`: for `strtol()`\n- `<cerrno>`: for `errno`\n\n## References\n\n- [OWASP C++ Secure Coding Practices](https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html)\n- [CWE-242: Use of Inherently Dangerous Function](https://cwe.mitre.org/data/definitions/242.html)"
-              },
-              "properties": {
-                "tags": [
-                  "DS154189"
-                ]
-              }
-            },
-            {
               "id": "d22337f7-0c7f-346e-82eb-4fef004e5752",
-              "help": {
-                "text": "",
-                "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
-              },
-              "properties": {
-                "tags": [
-                  "DS154189"
-                ]
-              }
-            },
-            {
-              "id": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
               "help": {
                 "text": "",
                 "markdown": "## Description\n\n\"Detected Prohibited C Function\" vulnerability in C++ programming language refers to the use of certain C standard library functions that are known to be dangerous due to their potential to cause buffer overflows, format string vulnerabilities, or other problems. These functions are often prohibited in secure coding standards. One such function is `fprintf`.\n\nThe `fprintf` function can lead to vulnerabilities if not used correctly. It can cause format string vulnerabilities if the format string is not a constant, or if it's composed dynamically, it can lead to buffer overflows if the output is larger than the buffer.\n\n## Mitigation Advice\n\nTo mitigate this vulnerability, it is recommended to use safer alternatives to `fprintf` such as `snprintf` or `vsnprintf`. These functions include the size of the buffer as an argument, which can prevent buffer overflows.\n\n## Source Code Fix Recommendation\n\nInstead of using `fprintf`, use `snprintf` or `vsnprintf`. Here is an example:\n\n```cpp\n#include <stdio.h>\n\nvoid safe_function(const char* format, ...) {\n    char buffer[1024];\n    va_list args;\n    va_start(args, format);\n    vsnprintf(buffer, sizeof(buffer), format, args);\n    va_end(args);\n    // Now buffer contains the formatted string.\n    // You can write it to file with fwrite or similar\n}\n```\n\n## Library Dependencies\n\nThe code example requires the following library:\n\n- stdio.h\n\n## References\n\n- [OWASP C++](https://owasp.org/www-pdf-archive/OWASP_SCP_v2.pdf)\n\n## CWE\n\n- [CWE-676: Use of Potentially Dangerous Function](https://cwe.mitre.org/data/definitions/676.html)"
@@ -57,6 +33,18 @@
                 "tags": [
                   "DS148264",
                   "f4d2c0ff-b767-3ed9-92e5-a4c6534542b2"
+                ]
+              }
+            },
+            {
+              "id": "0d9e2a14-e01b-35e8-8b06-44be3f191a42",
+              "help": {
+                "text": "",
+                "markdown": "## Description\n\n\"Prohibited C Function Identified\" is a vulnerability that arises when a C++ program uses certain C library functions that are considered unsafe. These functions are unsafe because they do not perform bounds checking or other necessary validation, which can lead to buffer overflow attacks, format string vulnerabilities, or integer overflows.\n\nIn this specific case, the function `atoi()` is used, which converts a string to an integer. `atoi()` does not check for overflow or underflow, and it does not signal any error if the input string does not represent a valid integer.\n\n## Mitigation Advice\n\nAvoid using `atoi()`. Instead, use functions that perform error checking, such as `strtol()`, or use C++ style input/output, which can throw exceptions on error.\n\n## Source Code Fix Recommendation\n\nReplace `atoi(argv[2])` with the following code:\n\n```cpp\n#include <cstdlib>\n#include <cerrno>\n\nchar *endptr;\nlong val = strtol(argv[2], &endptr, 10);\n\nif (errno == ERANGE || *endptr != '\\0' || endptr == argv[2]) {\n    // Handle the error...\n}\n```\n\nIn this code, `strtol()` is used to convert the string to a long integer. It sets `errno` to `ERANGE` on overflow or underflow, and it sets `endptr` to point to any remaining characters after the number.\n\n## Library Dependencies\n\nThe code example requires the following library dependencies:\n\n- `<cstdlib>`: for `strtol()`\n- `<cerrno>`: for `errno`\n\n## References\n\n- [CWE-242: Use of Inherently Dangerous Function](https://cwe.mitre.org/data/definitions/242.html)"
+              },
+              "properties": {
+                "tags": [
+                  "DS154189"
                 ]
               }
             },
@@ -84,6 +72,46 @@
       },
       "language": "en-US",
       "results": [
+        {
+          "ruleId": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "Detected Prohibited C Function"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "miopen.hpp"
+                },
+                "region": {
+                  "startLine": 61,
+                  "startColumn": 8,
+                  "endLine": 61,
+                  "endColumn": 15,
+                  "charOffset": 1733,
+                  "charLength": 7,
+                  "snippet": {
+                    "text": "fprintf",
+                    "rendered": {
+                      "text": "fprintf",
+                      "markdown": "`fprintf`"
+                    }
+                  },
+                  "sourceLanguage": "cpp"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "DevSkimSeverity": "Moderate",
+            "DevSkimConfidence": "High",
+            "tags": [
+              "API.DangerousAPI.BannedFunction"
+            ]
+          }
+        },
         {
           "ruleId": "d22337f7-0c7f-346e-82eb-4fef004e5752",
           "kind": "fail",
@@ -125,30 +153,30 @@
           }
         },
         {
-          "ruleId": "061374b7-9ddc-3695-a914-68aadbc9e0ae",
+          "ruleId": "0d9e2a14-e01b-35e8-8b06-44be3f191a42",
           "kind": "fail",
           "level": "warning",
           "message": {
-            "text": "Detected Prohibited C Function"
+            "text": "\"Prohibited C Function Identified\""
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "miopen.hpp"
+                  "uri": "benchmark_wino.cpp"
                 },
                 "region": {
-                  "startLine": 61,
-                  "startColumn": 8,
-                  "endLine": 61,
-                  "endColumn": 15,
-                  "charOffset": 1733,
-                  "charLength": 7,
+                  "startLine": 36,
+                  "startColumn": 15,
+                  "endLine": 36,
+                  "endColumn": 19,
+                  "charOffset": 984,
+                  "charLength": 4,
                   "snippet": {
-                    "text": "fprintf",
+                    "text": "atoi",
                     "rendered": {
-                      "text": "fprintf",
-                      "markdown": "`fprintf`"
+                      "text": "atoi",
+                      "markdown": "`atoi`"
                     }
                   },
                   "sourceLanguage": "cpp"
